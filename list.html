@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>List</title>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+        <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+        <link type="text/css" rel="stylesheet" href="main.css"/>
+    </head>
+    <body>
+        <div class="navbar-fixed">
+            <nav>
+                <div class="nav-wrapper">
+                    <a href="#" data-target="mobile-nav-dropdown" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                    <ul class="right hide-on-med-and-down">
+                        <li><a href="index.html">Logout</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+        <ul class="sidenav" id="mobile-nav-dropdown">
+            <li><a href="index.html">Logout</a></li>
+        </ul>
+
+        <div class="row search-space">
+            <div class="col s10 offset-s1 m8 offset-m2 l6 offset-l3">
+                <nav>
+                    <div class="nav-wrapper search-wrapper">
+                        <form>
+                            <div class="input-field">
+                                <input id="search" type="search" required>
+                                <label class="label-icon" for="search"><i class="material-icons">search</i></label>
+                                <i class="material-icons">close</i>
+                            </div>
+                        </form>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <div class="container">
+            <div id="sort-space" class="sort-space">
+                <label for="sort-space">Sort:</label>
+                <a class="waves-effect waves-light btn" id="sortByNameBtn">By name</a>
+                <a class="waves-effect waves-light btn" id="sortByYearBtn">By year</a>
+                <a class="waves-effect waves-light btn" id="sortByRatingBtn">By rating</a>
+            </div>
+
+            <div id="movie-list" class="row grid-list"></div>
+
+            <div>
+                <a class="waves-effect waves-teal btn-flat" id="loadMoreBtn">Load More</a>
+            </div>
+        </div>
+
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        <script type="text/javascript" src="main.js"></script>
+        <script>
+            var movies = [];
+            var filteredMovies = [];
+            var sortBy = 'S.No.';
+            var limit = 9;
+
+            var movieList = document.getElementById('movie-list');
+            var sortByNameBtn = document.getElementById('sortByNameBtn');
+            var sortByYearBtn = document.getElementById('sortByYearBtn');
+            var sortByRatingBtn = document.getElementById('sortByRatingBtn');
+            var searchInput = document.getElementById('search');
+            var loadMoreBtn = document.getElementById('loadMoreBtn');
+
+            document.addEventListener('DOMContentLoaded', function() {
+                fetch('csvjson.json')
+                .then(function(response) {
+                    if(response.ok) return response.json();
+                })
+                .then(function(response) {
+                    movies = response;
+                    filteredMovies = response;
+                    sortMovies(1);
+                    renderMovieList();
+                })
+                .catch(function(error) {
+                    console.error(error);
+                })
+            });
+
+            function renderMovieList() {
+                var html = filteredMovies.map(function(movie) {
+                    return (
+                        '<div class="col s12 m6 l4">\
+                            <a href="movie.html?id=' + movie['S.No.'] + '" class="movie-card">\
+                                <div class="card small" style="height: 400px;">\
+                                    <div class="card-image">\
+                                        <img src="https://www.independentmediators.co.uk/wp-content/uploads/2016/02/placeholder-image.jpg" alt="movie-thumbnail">\
+                                    </div>\
+                                    <div class="card-content">\
+                                        <div class="row">\
+                                            <div class="col s6">\
+                                                ' + movie['Movie name'] + '\
+                                            </div>\
+                                            <div class="col s6 text-right">\
+                                                ' + ratingHTML(movie['Star rating']) + '\
+                                            </div>\
+                                        </div>\
+                                        <div>\
+                                            ' + movie['Year'] + '\
+                                        </div>\
+                                    </div>\
+                                </div>\
+                            </a>\
+                        </div>'
+                    );
+                });
+
+                movieList.innerHTML = html.slice(0, limit).join('');
+            }
+
+            function ratingHTML(rating) {
+                var elements = [];
+                for(var i=1; i<=rating; i++) {
+                    elements.push('<i class="material-icons">star</i>');
+                }
+                for(var i=rating+1; i<=5; i++) {
+                    elements.push('<i class="material-icons">star_outline</i>');
+                }
+                return elements.join('');
+            }
+
+            sortByNameBtn.onclick = function(event) {
+                event.preventDefault();
+                sortBy = 'Movie name';
+                sortMovies(1);
+                renderMovieList();
+            }
+            sortByYearBtn.onclick = function(event) {
+                event.preventDefault();
+                sortBy = 'Year';
+                sortMovies(-1);
+                renderMovieList();
+            }
+            sortByRatingBtn.onclick = function(event) {
+                event.preventDefault();
+                sortBy = 'Star rating';
+                sortMovies(-1);
+                renderMovieList();
+            }
+
+            function sortMovies(order = 1) {
+                filteredMovies.sort(function(movie1, movie2) {
+                    if(movie1[sortBy] < movie2[sortBy]) {
+                        return -1*order;
+                    } else if(movie1[sortBy] > movie2[sortBy]) {
+                        return order;
+                    }
+                    return 0;
+                });
+            }
+
+            searchInput.onkeyup = function(event) {
+                var searchKey = event.target.value;
+                filteredMovies = movies.filter(function(movie) {
+                    if(movie['Movie name'].toString().substring(0, searchKey.length).toLowerCase() === searchKey.toLowerCase()) {
+                        return true;
+                    }
+                    return false;
+                });
+                renderMovieList();
+            }
+
+            loadMoreBtn.onclick = function(event) {
+                event.preventDefault();
+                limit += 9;
+                if(limit > movies.length) {
+                    loadMoreBtn.style.display = 'none';
+                }
+                renderMovieList();
+            }
+        </script>
+    </body>
+</html>
